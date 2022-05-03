@@ -10,7 +10,7 @@ module i2c_tx (
 
     output bit        data_en, // Data Enable, active on low
     output bit        ack_en,  // Ack Enable, active on low
-    output bit        ack_s    // Ack State, ACK on low, NAK on high
+    output bit        ack      // Ack State, ACK on low, NAK on high
   );
 
   typedef enum logic [0:2] {
@@ -46,13 +46,13 @@ module i2c_tx (
 
   // Data Enable driver
   // Data can be only changed in certain states.
-  assign data_en = !(state == kIdle | (state == kAck & !ack_s));
+  assign data_en = !(state == kIdle | (state == kAck & !ack));
 
   always @ (posedge clk) begin 
     case (state)
 
       kIdle: begin
-        ack_s <= 1'b1;
+        ack <= 1'b1;
         ack_en <= 1'b1;
 
         data_reg <= 8'hFF;
@@ -64,7 +64,7 @@ module i2c_tx (
       end
 
       kAck: begin
-        ack_s <= i2c.sda ? 1'b1 : 1'b0;
+        ack <= i2c.sda ? 1'b1 : 1'b0;
         ack_en <= 1'b0;
 
         $display("[%d] ack = %d", $time, i2c.sda);
@@ -85,7 +85,7 @@ module i2c_tx (
         end
 
         kAck: begin
-          if (!ack_s & !tx) begin
+          if (!ack & !tx) begin
             data_reg <= data;
             counter_next <= 4'd7;
             state_next <= kTransmit;

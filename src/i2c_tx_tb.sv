@@ -11,7 +11,7 @@ module i2c_tx_tb(
   logic [7:0] data;
 
   logic       data_en;
-  logic       ack_s;
+  logic       ack;
   logic       ack_en;
 
   i2c_if i2c ();
@@ -25,7 +25,7 @@ module i2c_tx_tb(
     .data(data),
 
     .data_en(data_en),
-    .ack_s(ack_s),
+    .ack(ack),
     .ack_en(ack_en)
   );
 
@@ -47,7 +47,7 @@ module i2c_tx_tb(
 
       @(negedge ack_en);
 
-      if (! ack_en & ack_s) begin
+      if (! ack_en & ack) begin
         $display("[%d] controller NAK", $time);
         if (ack_count != 0) $finish;
         break;
