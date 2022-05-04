@@ -27,40 +27,46 @@ module i2c_tx (
   logic [3:0] counter_next;
 
   // SDA driver
-  always_comb begin
-    case (state)
-//      kIdle:     i2c.sda = 1'bZ;
-      kTransmit: i2c.sda = data_reg[counter];
-//      kAck:      i2c.sda = 1'bZ;
-    endcase
-  end
+  // always_comb begin
+  //   case (state)
+  //     kIdle:     i2c.sda = 'bZ;
+  //     kTransmit: i2c.sda = data_reg[counter];
+  //     kAck:      i2c.sda = 'bZ;
+  //   endcase
+  // end
+
+  assign i2c.sda = (state == kTransmit) ? data_reg[counter] : 'bZ;
 
   // SCL driver
-  always_comb begin
-    case (state)
-      kIdle:     i2c.scl = 1'bZ;
-      kTransmit: i2c.scl = clk;
-      kAck:      i2c.scl = clk;
-    endcase
-  end
+  // always_comb begin
+  //   case (state)
+  //     // kIdle:     i2c.scl = 1'bZ;
+  //     kTransmit: i2c.scl = clk;
+  //     kAck:      i2c.scl = clk;
+  //   endcase
+  // end
+
+  assign i2c.scl = (state == kTransmit || state == kAck) ? clk : 'bZ;
 
   // Data Enable driver
   // Data can be only changed in certain states.
-  assign data_en = !(state == kIdle | (state == kAck & !ack));
+  //assign data_en = !(state == kIdle | (state == kAck & !ack));
+  always_comb begin
+    case (state)
+      kIdle:     data_en = 'b0;
+      kTransmit: data_en = 'b1;
+      kAck:      data_en = ack;
+    endcase
+  end
 
   always @ (posedge clk) begin 
     case (state)
 
       kIdle: begin
-        ack <= 1'b1;
-        ack_en <= 1'b1;
-
-        data_reg <= 8'hFF;
-        counter_next <= 4'd7;
-        if (! tx) begin
-          data_reg <= data;
-          state_next <= kTransmit;
-        end
+        //if (! tx) begin
+        //  data_reg <= data;
+        //  state_next <= kTransmit;
+        //end
       end
 
       kAck: begin
@@ -74,14 +80,28 @@ module i2c_tx (
   end
 
   always @ (negedge clk) begin 
-    if (! rstn) begin
-      state_next <= kIdle;
+    if (! rstn | state == kIdle) begin
+      // state_next <= kIdle;
+      ack <= 1'b1;
+      ack_en <= 1'b1;
+
+      data_reg <= 8'hFF;
+      counter_next <= 4'd7;
+
+      if (! tx) begin
+        data_reg <= data;
+        state_next <= kTransmit;
+      end else begin
+        state_next <= kIdle;
+      end
+
     end else begin
       case (state)
         kTransmit: begin
-          ack_en <= 1'b1;
-          if (counter_next == 4'd0) state_next <= kAck;
-          else counter_next <= counter_next - 1;
+          if (counter_next == 4'd0)
+            state_next <= kAck;
+          else
+            counter_next <= counter_next - 1;
         end
 
         kAck: begin
@@ -93,6 +113,7 @@ module i2c_tx (
             counter_next <= 4'd7;
             state_next <= kIdle;
           end
+          ack_en <= 1'b1;
         end
       endcase
     end

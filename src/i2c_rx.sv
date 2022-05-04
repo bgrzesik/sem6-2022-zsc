@@ -27,20 +27,27 @@ module i2c_rx (
   logic [3:0] counter_next;
 
   // SDA driver
-  always_comb begin
-    case (state)
-      kAck:     i2c.sda = ack;
-    endcase
-  end;
+  // always_comb begin
+  //   case (state)
+  //     // kIdle:    i2c.sda = 'bZ;
+  //     // kReceive: i2c.sda = 'bZ;
+  //     // kAck:     i2c.sda = ack;
+  //   endcase
+  // end;
+  //
+  //
+  assign i2c.sda = (state == kAck) ? ack : 'bZ;
 
   // SCL driver
-  always_comb begin
-    case (state)
-      kIdle:    i2c.scl = 'bZ;
-      kReceive: i2c.scl = clk;
-      kAck:     i2c.scl = clk;
-    endcase
-  end;
+  // always_comb begin
+  //   case (state)
+  //     // kIdle:    i2c.scl = 'bZ;
+  //     kReceive: i2c.scl = clk;
+  //     kAck:     i2c.scl = clk;
+  //   endcase
+  // end;
+  //
+  assign i2c.scl = (state == kReceive || state == kAck) ? clk : 'bZ;
 
   // Ack Enable driver
   always_comb begin
@@ -71,20 +78,18 @@ module i2c_rx (
   end
 
   always @ (negedge clk) begin
-    if (! rstn) begin
-      state_next <= kIdle;
+    if (! rstn | state == kIdle) begin
       counter_next <= 8'd7;
-      data_reg <= 8'd0;
+      data_reg <= 8'h00;
+      data <= 8'h00;
+
+      if (!rx) 
+        state_next <= kReceive;
+      else
+        state_next <= kIdle;
 
     end else begin
       case (state)
-
-        kIdle: begin
-          counter_next <= 8'd7;
-          data_reg <= 8'h00;
-
-          if (!rx) state_next <= kReceive;
-        end
 
         kReceive: begin
           if (counter == 4'd0) begin

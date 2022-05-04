@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "i2c_vip.sv"
+// `include "i2c_vip.sv"
 
 module i2c_rx_tb(
   );

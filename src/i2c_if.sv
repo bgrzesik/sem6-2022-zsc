@@ -1,7 +1,7 @@
 
 interface i2c_if;
-  logic sda;
-  logic scl;
+  wire sda;
+  wire scl;
 
   // Both need SDA's input and output for ACK
   modport ctrl_tx (

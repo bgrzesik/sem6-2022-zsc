@@ -59,9 +59,11 @@ class I2CVip;
       //#1;
 
       if (ack_count > 0)
-        i2c.sda <= 'b0;
+        // i2c.sda <= 'b0;
+        i2c.driver_cb.sda <= 'b0;
       else if (ack_count == 0)
-        i2c.sda <= 'b1;
+        // i2c.sda <= 'b1;
+        i2c.driver_cb.sda <= 'b1;
       else
         this.fail("Controller should stop");
 
@@ -83,11 +85,11 @@ class I2CVip;
 
       for (int j = 0; j < 8; j++) begin
         @(negedge i2c.scl);
-        i2c.sda = by[j];
+        i2c.driver_cb.sda <= by[j];
       end
 
       @(negedge i2c.scl);
-      i2c.sda <= 'bZ;
+      i2c.driver_cb.sda <= 'bZ;
       @(posedge i2c.scl);
 
       if (i2c.sda) begin
