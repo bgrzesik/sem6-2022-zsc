@@ -2,18 +2,18 @@
 module i2c_rx (
     i2c_if.ctrl_rx i2c,
 
-    input logic        clk,
-    input logic        rstn,
-    input logic        rx,
+     input wire        clk,
+     input wire        rstn,
+     input wire        rx,
 
-    output logic [7:0] data,
-    output logic       data_rdy, // Data Ready, active on low
+    output bit   [7:0] data,
+    output wire        data_rdy, // Data Ready, active on low
 
-    output bit         ack_en,   // Ack Enable, active on low
-    input logic        ack       // Ack input
+    output wire        ack_en,   // Ack Enable, active on low
+     input wire        ack       // Ack input
   );
 
-  typedef enum logic [0:4] {
+  typedef enum bit [0:4] {
     kIdle    = 0,
     kReceive = 1,
     kAck     = 2
@@ -21,51 +21,22 @@ module i2c_rx (
 
   state_t state, state_next;
 
-  logic [0:7] data_reg;
+  bit [0:7] data_reg;
 
-  logic [3:0] counter;
-  logic [3:0] counter_next;
+  bit [3:0] counter;
+  bit [3:0] counter_next;
 
   // SDA driver
-  // always_comb begin
-  //   case (state)
-  //     // kIdle:    i2c.sda = 'bZ;
-  //     // kReceive: i2c.sda = 'bZ;
-  //     // kAck:     i2c.sda = ack;
-  //   endcase
-  // end;
-  //
-  //
   assign i2c.sda = (state == kAck) ? ack : 'bZ;
 
   // SCL driver
-  // always_comb begin
-  //   case (state)
-  //     // kIdle:    i2c.scl = 'bZ;
-  //     kReceive: i2c.scl = clk;
-  //     kAck:     i2c.scl = clk;
-  //   endcase
-  // end;
-  //
   assign i2c.scl = (state == kReceive || state == kAck) ? clk : 'bZ;
 
   // Ack Enable driver
-  always_comb begin
-    case (state)
-      kIdle:    ack_en = 'b1;
-      kReceive: ack_en = 'b1;
-      kAck:     ack_en = 'b0;
-    endcase
-  end;
+  assign ack_en = !(state == kAck);
 
   // Data Ready driver
-  always_comb begin
-    case (state)
-      kIdle:    data_rdy = 'b1;
-      kReceive: data_rdy = 'b1;
-      kAck:     data_rdy = 'b0;
-    endcase
-  end;
+  assign data_rdy = !(state == kAck);
 
   always @ (posedge clk) begin
     case (state)
@@ -122,7 +93,6 @@ module i2c_rx (
     state = state_next;
     counter = counter_next;
   end
-
 
 endmodule
 

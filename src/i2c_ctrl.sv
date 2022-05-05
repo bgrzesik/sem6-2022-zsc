@@ -4,18 +4,18 @@
 module i2c_ctrl (
     i2c_if i2c,
 
-    input logic       clk,
-    input logic       rstn,
-    input logic       en,
+     input wire        clk,
+     input wire        rstn,
+     input wire        en,
 
-    input logic [7:0] addr,
-    inout logic [7:0] data,
+     input wire  [7:0] addr,
+     inout wire  [7:0] data,
 
-     input logic      busy,
-    output logic      data_rdy
+    output wire        busy,
+    output wire        data_rdy
   );
 
-  typedef enum logic [0:8] {
+  typedef enum bit [0:8] {
     kIdle     = 0,
     kStart    = 1,
     kAddress  = 2,
@@ -30,8 +30,8 @@ module i2c_ctrl (
 
   state_t state, state_next;
 
-  logic [7:0] counter;
-  logic [7:0] counter_next;
+  bit [7:0] counter;
+  bit [7:0] counter_next;
 
   logic       tx_en;
   logic       tx_rstn;

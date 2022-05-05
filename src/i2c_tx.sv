@@ -2,18 +2,18 @@
 module i2c_tx (
     i2c_if.ctrl_tx i2c,
 
-    input logic       clk,
-    input logic       rstn,
-    input logic       tx,
+     input wire       clk,
+     input wire       rstn,
+     input wire       tx,
 
-    input logic [7:0] data,
-
+     input wire [7:0] data,
     output bit        data_en, // Data Enable, active on low
+
     output bit        ack_en,  // Ack Enable, active on low
     output bit        ack      // Ack State, ACK on low, NAK on high
   );
 
-  typedef enum logic [0:2] {
+  typedef enum bit [0:2] {
     kIdle     = 0,
     kTransmit = 1,
     kAck      = 2
@@ -21,53 +21,22 @@ module i2c_tx (
 
   state_t state, state_next;
 
-  logic [7:0] data_reg;
+  bit [7:0] data_reg;
 
-  logic [3:0] counter;
-  logic [3:0] counter_next;
+  bit [3:0] counter;
+  bit [3:0] counter_next;
 
   // SDA driver
-  // always_comb begin
-  //   case (state)
-  //     kIdle:     i2c.sda = 'bZ;
-  //     kTransmit: i2c.sda = data_reg[counter];
-  //     kAck:      i2c.sda = 'bZ;
-  //   endcase
-  // end
-
   assign i2c.sda = (state == kTransmit) ? data_reg[counter] : 'bZ;
 
   // SCL driver
-  // always_comb begin
-  //   case (state)
-  //     // kIdle:     i2c.scl = 1'bZ;
-  //     kTransmit: i2c.scl = clk;
-  //     kAck:      i2c.scl = clk;
-  //   endcase
-  // end
-
   assign i2c.scl = (state == kTransmit || state == kAck) ? clk : 'bZ;
 
   // Data Enable driver
-  // Data can be only changed in certain states.
-  //assign data_en = !(state == kIdle | (state == kAck & !ack));
-  always_comb begin
-    case (state)
-      kIdle:     data_en = 'b0;
-      kTransmit: data_en = 'b1;
-      kAck:      data_en = ack;
-    endcase
-  end
+  assign data_en = !(state == kIdle | (state == kAck & !ack));
 
   always @ (posedge clk) begin 
     case (state)
-
-      kIdle: begin
-        //if (! tx) begin
-        //  data_reg <= data;
-        //  state_next <= kTransmit;
-        //end
-      end
 
       kAck: begin
         ack <= i2c.sda ? 1'b1 : 1'b0;
