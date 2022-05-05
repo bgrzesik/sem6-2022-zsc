@@ -11,7 +11,7 @@ module i2c_ctrl (
     input logic [7:0] addr,
     inout logic [7:0] data,
 
-     input logic      data_en,
+     input logic      busy,
     output logic      data_rdy
   );
 
@@ -39,6 +39,8 @@ module i2c_ctrl (
   logic       tx_ack_en;
   logic       tx_ack;
   logic [7:0] tx_data;
+
+  assign busy = !(state == kIdle);
 
   i2c_tx i2c_tx (
     .i2c(i2c.ctrl_tx),
@@ -181,6 +183,7 @@ module i2c_ctrl (
   end
 
   assign data = state == kAck ? rx_data : 'hZZ;
+  assign data_rdy = !(addr[0] & state == kAck & ! rx_data_rdy);
 
   assign i2c.sda =
     (state == kStart | state == kStop) ?
