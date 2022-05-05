@@ -55,6 +55,7 @@ module i2c_ctrl_tb (
   initial begin
     byte bytes [];
     event start_bit;
+    event stop_bit;
 
     $display("[%d] ================================", $time);
     i2c_vip.detect_start(start_bit);
@@ -64,6 +65,10 @@ module i2c_ctrl_tb (
     $display("[%d] ================================", $time);
     i2c_vip.write(1, '{ 'hDD });
     $display("[%d] ================================", $time);
+
+    i2c_vip.detect_stop(stop_bit);
+    #30;
+    $finish;
   end
 
 endmodule;
