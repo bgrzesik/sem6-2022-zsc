@@ -7,6 +7,7 @@ module i2c_ctrl_tb (
   logic       clk;
   logic       rstn;
   logic       en;
+  logic       busy;
 
   logic [7:0] addr;
    wire [7:0] data;
@@ -20,6 +21,7 @@ module i2c_ctrl_tb (
     .clk(clk),
     .rstn(rstn),
     .en(en),
+    .busy(busy),
 
     .addr(addr),
     .data(data)
@@ -43,30 +45,32 @@ module i2c_ctrl_tb (
 
     #7;
     addr <= 'hAF;
+    rstn <= 'b1;
+    en <= 'b0;
+
+    @(negedge busy);
+
+    #7;
+    addr <= 'hA0;
     data_reg <= 'h55;
     rstn <= 'b1;
     en <= 'b0;
+
+    @(negedge busy);
 
 
     #300;
     $finish;
   end
 
+
   initial begin
-    byte bytes [];
-    event start_bit;
-    event stop_bit;
+    byte addr;
+    byte data [];
 
-    $display("[%d] ================================", $time);
-    i2c_vip.detect_start(start_bit);
-    $display("[%d] ================================", $time);
-    i2c_vip.read(1, bytes);
-    #10;
-    $display("[%d] ================================", $time);
-    i2c_vip.write(1, '{ 'hDD });
-    $display("[%d] ================================", $time);
+    i2c_vip.xmit_write(1, addr, '{ 'hAF });
+    i2c_vip.xmit_read(1, addr,data);
 
-    i2c_vip.detect_stop(stop_bit);
     #30;
     $finish;
   end
