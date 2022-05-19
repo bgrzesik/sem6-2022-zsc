@@ -45,6 +45,7 @@ class I2CVip;
     while (1) begin
       for (int i = 0; i < 8; i++) begin
         @(posedge i2c.scl);
+        $display("[%d] -=-=-=-=-=-", $time);
         val[i] = i2c.sda;
       end
 
@@ -56,8 +57,6 @@ class I2CVip;
 
       $display("[%d] -------- ", $time);
 
-      //#1;
-
       if (ack_count > 0)
         // i2c.sda <= 'b0;
         i2c.driver_cb.sda <= 'b0;
@@ -67,11 +66,11 @@ class I2CVip;
       else
         this.fail("Controller should stop");
 
-      ack_count = ack_count - 1;
-      if (ack_count == 0) break;
-
       @(posedge i2c.scl);
       i2c.driver_cb.sda <= 'bZ;
+
+      ack_count = ack_count - 1;
+      if (ack_count == 0) break;
     end
   endtask
 
@@ -104,6 +103,40 @@ class I2CVip;
     end
 
     if (ack_count != 'd0) this.fail("ACK count didn't match");
+  endtask
+
+  task xmit_write(input int ack_count, output byte addr, input byte data []);
+    event start_bit;
+    event stop_bit;
+    byte addr_ [] = new [0];
+
+    $display("[%d] ================================ start", $time);
+    this.detect_start(start_bit);
+    $display("[%d] ================================ addr", $time);
+    this.read(1, addr_);
+    addr = addr_[0];
+    $display("[%d] ================================ write", $time);
+    this.write(ack_count, data);
+    $display("[%d] ================================ stop", $time);
+    this.detect_stop(stop_bit);
+    $display("[%d] ================================", $time);
+  endtask
+
+  task xmit_read(input int ack_count, output byte addr, output byte data []);
+    event start_bit;
+    event stop_bit;
+    byte addr_ [] = new [0];
+
+    $display("[%d] ================================ start", $time);
+    this.detect_start(start_bit);
+    $display("[%d] ================================ addr", $time);
+    this.read(1, addr_);
+    addr = addr_[0];
+    $display("[%d] ================================ read ", $time);
+    this.read(ack_count, data);
+    $display("[%d] ================================ stop", $time);
+    this.detect_stop(stop_bit);
+    $display("[%d] ================================", $time);
   endtask
 
   task fail(string msg);

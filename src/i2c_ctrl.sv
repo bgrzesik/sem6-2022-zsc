@@ -109,6 +109,7 @@ module i2c_ctrl (
       end
 
       kTransmit: begin
+        counter_next <= 0;
         if (! tx_ack)
           state_next <= kStop;
         else
@@ -237,6 +238,9 @@ module i2c_ctrl (
 
         kStop: begin
           counter_next <= counter + 1;
+
+          if (counter == 'd2)
+            state_next <= kIdle;
         end
 
       endcase
