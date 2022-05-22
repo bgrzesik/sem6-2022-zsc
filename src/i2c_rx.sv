@@ -1,16 +1,21 @@
 
-module i2c_rx (
+module i2c_rx #(
+  parameter CLK_FREQ=50_000_000,
+  parameter CLK_DIV=CLK_FREQ / 100_000,
+  parameter DIV_LEN = 16
+) (
     i2c_if.ctrl_rx i2c,
 
-     input wire        clk,
-     input wire        rstn,
-     input wire        rx,
+     input wire                 clk,
+     input wire                 rstn,
+     input wire                 rx,
+     input wire [DIV_LEN - 1:0] clk_counter,
 
-    output bit   [7:0] data,
-    output wire        data_rdy, // Data Ready, active on low
+    output bit  [7:0]           data,
+    output wire                 data_rdy, // Data Ready, active on low
 
-    output wire        ack_en,   // Ack Enable, active on low
-     input wire        ack       // Ack input
+    output wire                 ack_en,   // Ack Enable, active on low
+     input wire                 ack       // Ack input
   );
 
   typedef enum bit [0:4] {
@@ -26,33 +31,24 @@ module i2c_rx (
   bit [3:0] counter;
   bit [3:0] counter_next;
 
-  // SDA driver
-  assign i2c.sda = (state == kAck) ? ack : 'bZ;
+  bit       was_low;
 
-  // SCL driver
-  assign i2c.scl = (state == kReceive || state == kAck) ? clk : 'bZ;
+  // SDA driver
+  assign i2c.sda = (was_low & state == kAck) ? ack : 'bZ;
 
   // Ack Enable driver
-  assign ack_en = !(state == kAck);
+  assign ack_en = !(state == kAck & !(was_low & clk_counter == CLK_DIV - 1));
 
   // Data Ready driver
   assign data_rdy = !(state == kAck);
-
-  always @ (posedge clk) begin
-    case (state)
-
-      kReceive: begin
-        data_reg[counter] <= i2c.sda;
-      end
-
-    endcase
-  end
+  assign data = data_reg;
 
   always @ (negedge clk) begin
     if (! rstn | state == kIdle) begin
       counter_next <= 8'd7;
       data_reg <= 8'h00;
-      data <= 8'h00;
+      //data <= 8'h00;
+      was_low <='b0;
 
       if (!rx) 
         state_next <= kReceive;
@@ -63,26 +59,36 @@ module i2c_rx (
       case (state)
 
         kReceive: begin
-          if (counter == 4'd0) begin
-            counter_next <= 8'd7;
-            state_next <= kAck;
-            data <= data_reg;
+          if (i2c.scl & was_low) begin
+            data_reg[counter] <= i2c.sda;
 
-            $display("[%d] read %h", $time, data_reg);
-          end else begin
-            counter_next <= counter - 1;
+            if (counter_next != 8'd0) begin
+              counter_next <= counter - 1;
+            end else begin
+              counter_next <= 8'd7;
+              state_next <= kAck;
+
+              $display("[%d] read %h", $time, data_reg);
+            end
+            was_low <= 'b0;
           end
+
+          if (!i2c.scl & !was_low) was_low = 'b1;
         end
 
         kAck: begin
-          if (!ack & !rx) begin
-            counter_next <= 4'd7;
-            state_next <= kReceive;
-          end else begin
-            state_next <= kIdle;
+          if (i2c.scl & was_low & clk_counter == CLK_DIV - 1) begin
+            if (!ack & !rx) begin
+              counter_next <= 4'd7;
+              state_next <= kReceive;
+            end else begin
+              state_next <= kIdle;
+            end
+            data_reg <= 'h00;
+            was_low <= 'b0;
           end
 
-          data_reg <= 'h00;
+          if (!i2c.scl & !was_low) was_low = 'b1;
         end
 
       endcase

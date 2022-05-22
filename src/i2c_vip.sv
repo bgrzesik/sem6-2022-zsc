@@ -45,8 +45,8 @@ class I2CVip;
     while (1) begin
       for (int i = 0; i < 8; i++) begin
         @(posedge i2c.scl);
-        $display("[%d] -=-=-=-=-=-", $time);
-        val[i] = i2c.sda;
+        val[i] = i2c.sda ? 'b1 : 'b0;
+        $display("[%d] -=-=-=-=-=- %d", $time, val[i]);
       end
 
       $display("[%d] v3 byte = %h", $time, val);

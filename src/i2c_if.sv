@@ -6,11 +6,11 @@ interface i2c_if;
   // Both need SDA's input and output for ACK
   modport ctrl_tx (
     inout sda,
-    output scl
+    inout scl
   );
   modport ctrl_rx (
     inout sda,
-    output scl
+    inout scl
   );
 
   clocking driver_cb @ (negedge scl);
