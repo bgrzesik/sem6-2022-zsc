@@ -77,7 +77,7 @@ module i2c_tx #(
             ack <= i2c.sda ? 1'b1 : 1'b0;
             ack_en <= 1'b0;
 
-            $display("[%d] ack = %d", $time, i2c.sda);
+            $display("[%d] [TX] ack = %d", $time, i2c.sda);
           end
 
           if (clk_counter == CLK_DIV - 1) begin

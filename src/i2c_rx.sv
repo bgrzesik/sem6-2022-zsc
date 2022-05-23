@@ -68,7 +68,7 @@ module i2c_rx #(
               counter_next <= 8'd7;
               state_next <= kAck;
 
-              $display("[%d] read %h", $time, data_reg);
+              $display("[%d] [RX] read %h", $time, data_reg);
             end
             was_low <= 'b0;
           end

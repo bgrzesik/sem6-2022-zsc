@@ -18,7 +18,7 @@ class I2CVip;
       @(negedge i2c.scl);
       if (i2c.sda) continue;
 
-      $display("[%d] start", $time);
+      $display("[%d] [VIP] start", $time);
       -> start_bit;
       break;
     end
@@ -32,7 +32,7 @@ class I2CVip;
       @(posedge i2c.sda);
       if (! i2c.scl) continue;
 
-      $display("[%d] stop", $time);
+      $display("[%d] [VIP] stop", $time);
       -> stop_bit;
       break;
     end
@@ -46,16 +46,16 @@ class I2CVip;
       for (int i = 0; i < 8; i++) begin
         @(posedge i2c.scl);
         val[i] = i2c.sda ? 'b1 : 'b0;
-        $display("[%d] -=-=-=-=-=- %d", $time, val[i]);
+        // $display("[%d] [VIP] -=-=-=-=-=- %d", $time, val[i]);
       end
 
-      $display("[%d] v3 byte = %h", $time, val);
+      $display("[%d] [VIP] read %h", $time, val);
       bytes = new [bytes.size() + 1](bytes);
       bytes[bytes.size() - 1] = val;
 
       @(negedge i2c.scl);
 
-      $display("[%d] -------- ", $time);
+      $display("[%d] [VIP] -------- ", $time);
 
       if (ack_count > 0)
         // i2c.sda <= 'b0;
@@ -80,7 +80,7 @@ class I2CVip;
     foreach (bytes[i]) begin
       by = bytes[i];
 
-      $display("[%d] writing %h", $time, by);
+      $display("[%d] [VIP] send %h", $time, by);
 
       for (int j = 0; j < 8; j++) begin
         @(negedge i2c.scl);
@@ -92,10 +92,10 @@ class I2CVip;
       @(posedge i2c.scl);
 
       if (i2c.sda) begin
-        $display("[%d] got NAK", $time);
+        $display("[%d] [VIP] got NAK", $time);
         break;
       end else begin
-        $display("[%d] got ACK", $time);
+        $display("[%d] [VIP] got ACK", $time);
       end;
 
       ack_count = ack_count - 1;
@@ -110,16 +110,16 @@ class I2CVip;
     event stop_bit;
     byte addr_ [] = new [0];
 
-    $display("[%d] ================================ start", $time);
+    $display("[%d] [VIP] ================================ start", $time);
     this.detect_start(start_bit);
-    $display("[%d] ================================ addr", $time);
+    $display("[%d] [VIP] ================================ addr", $time);
     this.read(1, addr_);
     addr = addr_[0];
-    $display("[%d] ================================ write", $time);
+    $display("[%d] [VIP] ================================ write", $time);
     this.write(ack_count, data);
-    $display("[%d] ================================ stop", $time);
+    $display("[%d] [VIP] ================================ stop", $time);
     this.detect_stop(stop_bit);
-    $display("[%d] ================================", $time);
+    $display("[%d] [VIP] ================================", $time);
   endtask
 
   task xmit_read(input int ack_count, output byte addr, output byte data []);
@@ -127,20 +127,20 @@ class I2CVip;
     event stop_bit;
     byte addr_ [] = new [0];
 
-    $display("[%d] ================================ start", $time);
+    $display("[%d] [VIP] ================================ start", $time);
     this.detect_start(start_bit);
-    $display("[%d] ================================ addr", $time);
+    $display("[%d] [VIP] ================================ addr", $time);
     this.read(1, addr_);
     addr = addr_[0];
-    $display("[%d] ================================ read ", $time);
+    $display("[%d] [VIP] ================================ read ", $time);
     this.read(ack_count, data);
-    $display("[%d] ================================ stop", $time);
+    $display("[%d] [VIP] ================================ stop", $time);
     this.detect_stop(stop_bit);
-    $display("[%d] ================================", $time);
+    $display("[%d] [VIP] ================================", $time);
   endtask
 
   task fail(string msg);
-    $display("[%d] I2C verification failed: %s", $time, msg);
+    $display("[%d] [VIP] I2C verification failed: %s", $time, msg);
     //$finish;
   endtask
 

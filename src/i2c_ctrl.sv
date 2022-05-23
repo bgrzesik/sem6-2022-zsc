@@ -8,13 +8,16 @@ module i2c_ctrl #(
 
      input wire        clk,
      input wire        rstn,
-     input wire        feed,
+     input wire        feed,  // Has more data to transmit/receive
+
+     input wire        rx_ack,
+    output wire        tx_ack,
+    output wire        busy, // Low on next rx/tx byte
 
      input wire  [7:0] addr,
      inout wire  [7:0] data,
 
-    output wire        busy,
-    output wire        data_rdy
+    output wire        idle
   );
 
   localparam CLK_HIGH = (4 * CLK_DIV) / 5;
@@ -39,17 +42,13 @@ module i2c_ctrl #(
 
   state_t state, state_next;
 
-  bit [7:0] counter;
-  bit [7:0] counter_next;
+  assign idle = !(state == kIdle);
 
-  logic       tx_en;
-  logic       tx_rstn;
-  logic       tx_data_en;
-  logic       tx_ack_en;
-  logic       tx_ack;
-  logic [7:0] tx_data;
-
-  assign busy = !(state == kIdle);
+  assign busy = !(state == kStart
+                | state == kAddressAck
+                | state == kTransmitAck
+                | state == kReceiveAck
+                | state == kStop);
 
   // SCL driver
   wire [DIV_LEN - 1:0] clk_counter;
@@ -69,8 +68,18 @@ module i2c_ctrl #(
     .clk(clk),
     .en(scl_en),
     .clk_out(i2c.scl),
-    .counter(clk_counter)
+    .counter(clk_counter) // TODO get rid of, everything should be able to 'switch' on SCL low
   );
+
+  bit [7:0] counter;
+  bit [7:0] counter_next;
+
+  logic       tx_en;
+  logic       tx_rstn;
+  logic       tx_data_en;
+  logic       tx_ack_en;
+  logic       tx_ack;
+  logic [7:0] tx_data;
 
   i2c_tx #(
     .CLK_FREQ(CLK_FREQ),
@@ -126,7 +135,7 @@ module i2c_ctrl #(
   logic       rx_rstn;
   logic       rx_data_rdy;
   logic       rx_ack_en;
-  logic       rx_ack;
+  //logic       rx_ack;
   logic [7:0] rx_data;
 
   i2c_rx #( 
@@ -151,19 +160,19 @@ module i2c_ctrl #(
   always_comb begin
     rx_en = 'b1;
     rx_rstn = 'b0;
-    rx_ack = 'b1;
+    //rx_ack = 'b1;
 
     if (rstn) begin
       case (state) 
         kReceive: begin
           rx_en = 'b0;
           rx_rstn = 'b1;
-          rx_ack = 'b1;
+          //rx_ack = 'b1;
         end
         kReceiveAck: begin
           rx_en = 'b0;
           rx_rstn = 'b1;
-          rx_ack = 'b0; // TODO
+          //rx_ack = 'b0; // TODO
         end
       endcase
     end
@@ -196,17 +205,6 @@ module i2c_ctrl #(
       endcase
     end
   end
-  
-  // assign i2c.scl = 
-  //     (state == kStart & ) ? 'b0 : 'bZ;
-
-  // assign i2c.sda =
-  //   (state == kStart | state == kStop) ?
-  //     ((state == kStart) ? counter == 'd0 : counter == 'd2) : 'bZ;
-
-  // assign i2c.scl =
-  //   (state == kStart | state == kStop) ?
-  //     ((state == kStart) ? (counter == 'd0 | counter == 'd1) : (counter == 'd1 | counter == 'd2)) : 'bZ;
 
   always @ (negedge clk) begin
     if (! rstn | state == kIdle) begin
