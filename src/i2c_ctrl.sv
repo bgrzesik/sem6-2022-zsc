@@ -78,7 +78,6 @@ module i2c_ctrl #(
   logic       tx_rstn;
   logic       tx_data_en;
   logic       tx_ack_en;
-  logic       tx_ack;
   logic [7:0] tx_data;
 
   i2c_tx #(
@@ -179,8 +178,6 @@ module i2c_ctrl #(
   end
 
   assign data = state == kReceiveAck ? rx_data : 'hZZ;
-  assign data_rdy = !(addr[0] & state == kReceiveAck & ! rx_data_rdy);
-
 
   logic sda_driver;
   assign i2c.sda = ((state == kStart | state == kStop) & !sda_driver) ? 'b0 : 'bZ;

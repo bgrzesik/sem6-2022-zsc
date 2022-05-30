@@ -88,7 +88,8 @@ module i2c_ctrl_tb (
         $display("[%d] [TB] got more data to send but got NAK", $time);
         $finish;
       end else begin
-        $display("[%d] [TB] read %h giving ACK", $time, data_reg);
+        $display("[%d] [TB] read %h giving ACK", $time, data);
+        xmit_data[i] = data;
         rx_ack <= 'b0;
       end
     end
@@ -99,6 +100,50 @@ module i2c_ctrl_tb (
     $display("[%d] [TB] transaction finished", $time);
   endtask
 
+  task test_tx(input byte target_addr, input byte xmit_data []);
+    byte rx_addr;
+    byte rx_data [];
+
+    if (target_addr[0]) $finish;
+
+    fork
+      i2c_vip.xmit_read(xmit_data.size(), rx_addr, rx_data);
+      ctrl_transaction(target_addr, xmit_data);
+    join
+
+    $display("[%d] [TEST] Address GOT: %h EXPECTED: %h", $time, rx_addr, target_addr);
+    if (rx_addr != target_addr) $finish;
+
+    foreach (xmit_data[i]) begin
+      $display("[%d] [TEST] data[%d] GOT: %h EXPECTED: %h", $time, i, rx_data[i], xmit_data[i]);
+    end
+
+    if (rx_data != xmit_data) $finish;
+  endtask
+
+  task test_rx(input byte target_addr, input byte xmit_data []);
+    byte rx_addr;
+    byte rx_data [];
+
+    if (!target_addr[0]) $finish;
+
+    rx_data = new [xmit_data.size()];
+
+    fork
+      i2c_vip.xmit_write(xmit_data.size(), rx_addr, xmit_data);
+      ctrl_transaction(target_addr, rx_data);
+    join
+
+    $display("[%d] [TEST] Address GOT: %h EXPECTED: %h", $time, rx_addr, target_addr);
+    if (rx_addr != target_addr) $finish;
+
+    foreach (xmit_data[i]) begin
+      $display("[%d] [TEST] data[%d] GOT: %h EXPECTED: %h", $time, i, rx_data[i], xmit_data[i]);
+    end
+
+    if (rx_data != xmit_data) $finish;
+  endtask
+
   initial begin
     byte xmit_data [];
 
@@ -107,31 +152,19 @@ module i2c_ctrl_tb (
     rstn <= 'b0;
     clk <= 'b0;
     feed <= 'b1;
-    tx_ack <= 'b1;
     rx_ack <= 'b1;
 
-    xmit_data = '{ 'h55 };
-    ctrl_transaction('hA0, xmit_data);
+    test_tx('h30, '{ 'h12, 'h32, 'h99 });
+    test_tx('h34, '{ 'h00, 'hff, 'hac });
 
-    xmit_data = '{ 'h05, 'h12, 'hd7 };
-    ctrl_transaction('h32, xmit_data);
+    test_rx('h33, '{ 'h12, 'h32, 'h99 });
+    test_rx('h31, '{ 'h00, 'hff, 'hac });
 
-    xmit_data = new [2];
-    ctrl_transaction('h33, xmit_data);
+    test_tx('h30, '{ 'h12, 'h32, 'h99 });
+    test_rx('h31, '{ 'h00, 'hff, 'hac });
 
-    #30;
-    $finish;
-  end
-
-
-  initial begin
-    byte addr;
-    byte data [];
-
-    i2c_vip.xmit_read(1, addr, data);
-    i2c_vip.xmit_read(3, addr, data);
-
-    i2c_vip.xmit_write(2, addr, '{ 'hAB, 'hCC });
+    test_rx('h33, '{ 'h12, 'h32, 'h99 });
+    test_tx('h34, '{ 'h00, 'hff, 'hac });
 
     #30;
     $finish;
