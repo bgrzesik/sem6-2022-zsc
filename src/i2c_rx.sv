@@ -73,7 +73,7 @@ module i2c_rx #(
             was_low <= 'b0;
           end
 
-          if (!i2c.scl & !was_low) was_low = 'b1;
+          if (!i2c.scl & !was_low) was_low <= 'b1;
         end
 
         kAck: begin
@@ -88,7 +88,7 @@ module i2c_rx #(
             was_low <= 'b0;
           end
 
-          if (!i2c.scl & !was_low) was_low = 'b1;
+          if (!i2c.scl & !was_low) was_low <= 'b1;
         end
 
       endcase

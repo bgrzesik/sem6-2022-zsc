@@ -134,7 +134,6 @@ module i2c_ctrl #(
   logic       rx_rstn;
   logic       rx_data_rdy;
   logic       rx_ack_en;
-  //logic       rx_ack;
   logic [7:0] rx_data;
 
   i2c_rx #( 
