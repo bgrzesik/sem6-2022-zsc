@@ -35,9 +35,10 @@ module i2c_axi_tb();
     
     vip.start_master();
   
-    #50ns aresetn <= 'b1;
+    #10ns aresetn <= 'b1;
     
     #50ns;
+    vip.AXI4LITE_WRITE_BURST(CTRL_ADDR, prot, 32'h00000000, resp);  
     vip.AXI4LITE_WRITE_BURST(DATA_ADDR, prot, 32'h00000000, resp);  
   
     #50ns;
