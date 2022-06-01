@@ -15,7 +15,8 @@ module i2c_ctrl #(
     output wire        busy, // Low on next rx/tx byte
 
      input wire  [7:0] addr,
-     inout wire  [7:0] data,
+     input wire  [7:0] tx_data,
+    output wire  [7:0] rx_data,
 
     output wire        idle
   );
@@ -78,7 +79,7 @@ module i2c_ctrl #(
   logic       tx_rstn;
   logic       tx_data_en;
   logic       tx_ack_en;
-  logic [7:0] tx_data;
+  logic [7:0] tx_data_in;
 
   i2c_tx #(
     .CLK_FREQ(CLK_FREQ),
@@ -91,7 +92,7 @@ module i2c_ctrl #(
     .rstn(tx_rstn),
     .tx(tx_en),
 
-    .data(tx_data),
+    .data(tx_data_in),
     .clk_counter(clk_counter),
 
     .data_en(tx_data_en),
@@ -102,29 +103,29 @@ module i2c_ctrl #(
   always_comb begin
     tx_en = 'b1;
     tx_rstn = 'b0;
-    tx_data = 'hFF;
+    tx_data_in = 'hFF;
 
     if (rstn) begin
       case (state) 
         kAddress: begin
           tx_en = 'b0;
           tx_rstn = 'b1;
-          tx_data = addr;
+          tx_data_in = addr;
         end
         kAddressAck: begin
           tx_en = 'b0;
           tx_rstn = 'b1;
-          tx_data = data; // Provide data early
+          tx_data_in = tx_data; // Provide data early
         end
         kTransmit: begin
           tx_en = 'b0;
           tx_rstn = 'b1;
-          tx_data = data;
+          tx_data_in = tx_data;
         end
         kTransmitAck: begin
           tx_en = 'b0;
           tx_rstn = 'b1;
-          tx_data = data;
+          tx_data_in = tx_data;
         end
       endcase
     end
@@ -134,7 +135,6 @@ module i2c_ctrl #(
   logic       rx_rstn;
   logic       rx_data_rdy;
   logic       rx_ack_en;
-  logic [7:0] rx_data;
 
   i2c_rx #( 
     .CLK_FREQ(CLK_FREQ),
@@ -175,8 +175,6 @@ module i2c_ctrl #(
       endcase
     end
   end
-
-  assign data = state == kReceiveAck ? rx_data : 'hZZ;
 
   logic sda_driver;
   assign i2c.sda = ((state == kStart | state == kStop) & !sda_driver) ? 'b0 : 'bZ;

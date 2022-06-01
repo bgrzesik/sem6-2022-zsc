@@ -6,16 +6,15 @@ module i2c_ctrl_tb (
 
   logic       clk;
   logic       rstn;
-  logic       busy;
+  wire        busy;
   logic       feed;
-  logic       idle;
+  wire        idle;
   logic       rx_ack;
-  logic       tx_ack;
+  wire        tx_ack;
 
   logic [7:0] addr;
-   wire [7:0] data;
-
-  logic [7:0] data_reg;
+  logic [7:0] tx_data;
+  wire  [7:0] rx_data;
 
   i2c_if i2c ();
   i2c_ctrl #(
@@ -32,14 +31,13 @@ module i2c_ctrl_tb (
     .busy(busy),
 
     .addr(addr),
-    .data(data),
+    .rx_data(rx_data),
+    .tx_data(tx_data),
 
     .idle(idle)
   );
 
   I2CVip i2c_vip = new (i2c);
-
-  assign data = !addr[0] ? data_reg : 'hZZ;
 
   always #0.5 clk = !clk;
 
@@ -72,9 +70,9 @@ module i2c_ctrl_tb (
     foreach (xmit_data[i]) begin
       if (!addr[0]) begin
         $display("[%d] [TB] send %h", $time, xmit_data[i]);
-        data_reg <= xmit_data[i];
+        tx_data <= xmit_data[i];
       end else begin
-        data_reg <= 'hZZ;
+        tx_data <= 'hZZ;
       end
 
       $display("[%d] [TB] waiting for controller to become busy", $time);
@@ -85,11 +83,11 @@ module i2c_ctrl_tb (
       while (busy) @(negedge clk);
 
       if (!addr[0] & tx_ack) begin
-        $display("[%d] [TB] got more data to send but got NAK", $time);
+        $display("[%d] [TB] got more rx_data to send but got NAK", $time);
         $finish;
-      end else begin
-        $display("[%d] [TB] read %h giving ACK", $time, data);
-        xmit_data[i] = data;
+      end else if (addr[0]) begin
+        $display("[%d] [TB] read %h giving ACK", $time, rx_data);
+        xmit_data[i] = rx_data;
         rx_ack <= 'b0;
       end
     end
@@ -102,12 +100,12 @@ module i2c_ctrl_tb (
 
   task test_tx(input byte target_addr, input byte xmit_data []);
     byte rx_addr;
-    byte rx_data [];
+    byte rx_data_buf [];
 
     if (target_addr[0]) $finish;
 
     fork
-      i2c_vip.xmit_read(xmit_data.size(), rx_addr, rx_data);
+      i2c_vip.xmit_read(xmit_data.size(), rx_addr, rx_data_buf);
       ctrl_transaction(target_addr, xmit_data);
     join
 
@@ -115,40 +113,40 @@ module i2c_ctrl_tb (
     if (rx_addr != target_addr) $finish;
 
     foreach (xmit_data[i]) begin
-      $display("[%d] [TEST] data[%d] GOT: %h EXPECTED: %h", $time, i, rx_data[i], xmit_data[i]);
+      $display("[%d] [TEST] data[%d] GOT: %h EXPECTED: %h", $time, i, rx_data_buf[i], xmit_data[i]);
     end
 
-    if (rx_data != xmit_data) $finish;
+    if (rx_data_buf != xmit_data) $finish;
   endtask
 
   task test_rx(input byte target_addr, input byte xmit_data []);
     byte rx_addr;
-    byte rx_data [];
+    byte rx_data_buf [];
 
     if (!target_addr[0]) $finish;
 
-    rx_data = new [xmit_data.size()];
+    rx_data_buf = new [xmit_data.size()];
 
     fork
       i2c_vip.xmit_write(xmit_data.size(), rx_addr, xmit_data);
-      ctrl_transaction(target_addr, rx_data);
+      ctrl_transaction(target_addr, rx_data_buf);
     join
 
     $display("[%d] [TEST] Address GOT: %h EXPECTED: %h", $time, rx_addr, target_addr);
     if (rx_addr != target_addr) $finish;
 
     foreach (xmit_data[i]) begin
-      $display("[%d] [TEST] data[%d] GOT: %h EXPECTED: %h", $time, i, rx_data[i], xmit_data[i]);
+      $display("[%d] [TEST] data[%d] GOT: %h EXPECTED: %h", $time, i, rx_data_buf[i], xmit_data[i]);
     end
 
-    if (rx_data != xmit_data) $finish;
+    if (rx_data_buf != xmit_data) $finish;
   endtask
 
   initial begin
     byte xmit_data [];
 
     addr <= 'hFF;
-    data_reg <= 'hFF;
+    tx_data <= 'hFF;
     rstn <= 'b0;
     clk <= 'b0;
     feed <= 'b1;
