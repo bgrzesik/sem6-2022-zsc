@@ -4,7 +4,7 @@
   module i2c_axi_periph #
   (
     // Users to add parameters here
-
+    parameter integer CLK_FREQ=50_000_000,
     // User parameters ends
     // Do not modify the parameters beyond this line
 
@@ -44,11 +44,36 @@
     output wire  s00_axi_rvalid,
     input wire  s00_axi_rready
   );
+
+  wire       i2c_ctrl_rstn;
+  wire       i2c_ctrl_feed;
+  wire       i2c_ctrl_busy;
+  wire       i2c_ctrl_idle;
+
+  wire       i2c_ctrl_rx_ack;
+  wire       i2c_ctrl_tx_ack;
+
+  wire [7:0] i2c_ctrl_addr;
+  wire [7:0] i2c_ctrl_rx_data;
+  wire [7:0] i2c_ctrl_tx_data;
+
   // Instantiation of Axi Bus Interface S00_AXI
   i2c_axi_periph_axi # ( 
     .C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
     .C_S_AXI_ADDR_WIDTH(C_S00_AXI_ADDR_WIDTH)
   ) i2c_axi_periph_axi_inst (
+    .i2c_ctrl_rstn(i2c_ctrl_rstn),
+    .i2c_ctrl_feed(i2c_ctrl_feed),
+    .i2c_ctrl_busy(i2c_ctrl_busy),
+    .i2c_ctrl_idle(i2c_ctrl_idle),
+
+    .i2c_ctrl_rx_ack(i2c_ctrl_rx_ack),
+    .i2c_ctrl_tx_ack(i2c_ctrl_tx_ack),
+
+    .i2c_ctrl_addr(i2c_ctrl_addr),
+    .i2c_ctrl_rx_data(i2c_ctrl_rx_data),
+    .i2c_ctrl_tx_data(i2c_ctrl_tx_data),
+
     .S_AXI_ACLK(s00_axi_aclk),
     .S_AXI_ARESETN(s00_axi_aresetn),
     .S_AXI_AWADDR(s00_axi_awaddr),
@@ -73,7 +98,34 @@
   );
 
   // Add user logic here
+  i2c_if i2c (
+  //    .sda(sda),
+  //    .scl(scl)
+  );
 
+  assign sda = i2c.sda;
+  assign scl = i2c.scl;
+
+  i2c_ctrl #(
+    .CLK_FREQ(CLK_FREQ),
+  ) i2c_ctrl (
+    .i2c(i2c),
+
+    .clk(s00_axi_aclk),
+
+    .rstn(i2c_ctrl_rstn),
+    .feed(i2c_ctrl_feed),
+    .busy(i2c_ctrl_busy),
+    .idle(i2c_ctrl_idle),
+
+    .tx_ack(i2c_ctrl_tx_ack),
+    .rx_ack(i2c_ctrl_rx_ack),
+
+    .addr(i2c_ctrl_addr),
+    .rx_data(i2c_ctrl_rx_data),
+    .tx_data(i2c_ctrl_tx_data)
+
+  );
   // User logic ends
 
   endmodule

@@ -13,7 +13,17 @@ module i2c_axi_periph_axi #(
     parameter integer C_S_AXI_ADDR_WIDTH  = 4
   ) (
     // Users to add ports here
+    output wire       i2c_ctrl_rstn,
+    output wire       i2c_ctrl_feed,
+     input wire       i2c_ctrl_busy,
+     input wire       i2c_ctrl_idle,
 
+    output wire       i2c_ctrl_rx_ack,
+     input wire       i2c_ctrl_tx_ack,
+
+     input wire [7:0] i2c_ctrl_addr,
+     input wire [7:0] i2c_ctrl_rx_data,
+    output wire [7:0] i2c_ctrl_tx_data,
     // User ports ends
     // Do not modify the ports beyond this line
 
@@ -101,9 +111,7 @@ module i2c_axi_periph_axi #(
   //----------------------------------------------
   //-- Signals for user logic register space example
   //------------------------------------------------
-  //-- Number of Slave Registers 4
-  reg [C_S_AXI_DATA_WIDTH-1:0] slv_reg0;
-  reg [C_S_AXI_DATA_WIDTH-1:0] slv_reg1;
+  //-- Number of Slave Registers 4 
   reg [C_S_AXI_DATA_WIDTH-1:0] slv_reg2;
   reg [C_S_AXI_DATA_WIDTH-1:0] slv_reg3;
   wire   slv_reg_rden;
@@ -193,46 +201,82 @@ module i2c_axi_periph_axi #(
 
   always @ (posedge S_AXI_ACLK) begin
     if (S_AXI_ARESETN == 1'b0) begin
-      slv_reg0 <= 0;
-      slv_reg1 <= 0;
+      // slv_reg0 <= 0;
+      // slv_reg1 <= 0;
       slv_reg2 <= 0;
       slv_reg3 <= 0;
+
+      i2c_ctrl_rstn_reg <= 0;
+      i2c_ctrl_feed_reg <= 0;
+      i2c_ctrl_rx_ack_reg <= 0;
+      i2c_ctrl_tx_data_reg <= 8'h00;
+      i2c_ctrl_addr_reg <= 8'h00;
     end else begin
       if (slv_reg_wren) begin
         case (axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
-          2'h0:
-            for (byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1)
-              if (S_AXI_WSTRB[byte_index] == 1) begin
-                // Respective byte enables are asserted as per write strobes 
-                // Slave register 0
-                slv_reg0[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-              end
-          2'h1:
-            for (byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1)
-              if (S_AXI_WSTRB[byte_index] == 1) begin
-                // Respective byte enables are asserted as per write strobes 
-                // Slave register 1
-                slv_reg1[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-              end
-          2'h2:
-            for (byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1)
-              if (S_AXI_WSTRB[byte_index] == 1) begin
-                // Respective byte enables are asserted as per write strobes 
-                // Slave register 2
-                slv_reg2[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-              end
-          2'h3:
-            for (byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1)
-              if (S_AXI_WSTRB[byte_index] == 1) begin
-                // Respective byte enables are asserted as per write strobes 
-                // Slave register 3
-                slv_reg3[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-              end
+          /*
+      2'h0    : reg_data_out <= {24'h213700,
+                                 i2c_ctrl_tx_ack,
+                                 i2c_ctrl_rx_ack_reg,
+                                 2'b00,
+                                 i2c_ctrl_idle,
+                                 i2c_ctrl_busy,
+                                 i2c_ctrl_feed_reg,
+                                 i2c_ctrl_rstn_reg};
+
+      2'h1    : reg_data_out <= {8'h00,
+                                 i2c_ctrl_rx_data,
+                                 i2c_ctrl_tx_data_reg,
+                                 i2c_ctrl_addr_reg};
+          */
+          2'h0: begin
+            if (S_AXI_WSTRB[0] == 1) begin
+              $display("[%d] [I2C_AXI] 0 S_AXI_WDATA = %h", $time, S_AXI_WDATA);
+              i2c_ctrl_rx_ack_reg <= S_AXI_WDATA[6];
+              i2c_ctrl_feed_reg   <= S_AXI_WDATA[1];
+              i2c_ctrl_rstn_reg   <= S_AXI_WDATA[0];
+            end
+          end
+
+          2'h1: begin
+            $display("[%d] [I2C_AXI] 1 S_AXI_WDATA = %h", $time, S_AXI_WDATA);
+            if (S_AXI_WSTRB[0] == 1)
+              i2c_ctrl_addr_reg <= S_AXI_WDATA[0+:8];
+            if (S_AXI_WSTRB[1] == 1)
+              i2c_ctrl_tx_data_reg <= S_AXI_WDATA[8+:8];
+          end
+
+          2'h2: begin
+            if (S_AXI_WSTRB[0] == 1)
+              slv_reg2[0+: 8] <= S_AXI_WDATA[0+:8];
+            if (S_AXI_WSTRB[1] == 1)
+              slv_reg2[8+: 8] <= S_AXI_WDATA[8+:8];
+            if (S_AXI_WSTRB[2] == 1)
+              slv_reg2[16+: 8] <= S_AXI_WDATA[16+:8];
+            if (S_AXI_WSTRB[3] == 1)
+              slv_reg2[24+: 8] <= S_AXI_WDATA[24+:8];
+          end
+
+          2'h3: begin
+            if (S_AXI_WSTRB[0] == 1)
+              slv_reg3[0+: 8] <= S_AXI_WDATA[0+:8];
+            if (S_AXI_WSTRB[1] == 1)
+              slv_reg3[8+: 8] <= S_AXI_WDATA[8+:8];
+            if (S_AXI_WSTRB[2] == 1)
+              slv_reg3[16+: 8] <= S_AXI_WDATA[16+:8];
+            if (S_AXI_WSTRB[3] == 1)
+              slv_reg3[24+: 8] <= S_AXI_WDATA[24+:8];
+          end
+
           default : begin
-            slv_reg0 <= slv_reg0;
-            slv_reg1 <= slv_reg1;
             slv_reg2 <= slv_reg2;
             slv_reg3 <= slv_reg3;
+
+            i2c_ctrl_rstn_reg <= i2c_ctrl_rstn_reg;
+            i2c_ctrl_feed_reg <= i2c_ctrl_feed_reg;
+            i2c_ctrl_rx_ack_reg <= i2c_ctrl_rx_ack_reg;
+            i2c_ctrl_tx_data_reg <= i2c_ctrl_tx_data_reg;
+            i2c_ctrl_addr_reg <= i2c_ctrl_addr_reg;
           end
         endcase
       end
@@ -316,8 +360,20 @@ module i2c_axi_periph_axi #(
   always @(*) begin
     // Address decoding for reading registers
     case (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
-      2'h0    : reg_data_out <= slv_reg0;
-      2'h1    : reg_data_out <= slv_reg1;
+      2'h0    : reg_data_out <= {24'h213700,
+                                 i2c_ctrl_tx_ack,
+                                 i2c_ctrl_rx_ack_reg,
+                                 2'b00,
+                                 i2c_ctrl_idle,
+                                 i2c_ctrl_busy,
+                                 i2c_ctrl_feed_reg,
+                                 i2c_ctrl_rstn_reg};
+
+      2'h1    : reg_data_out <= {8'h00,
+                                 i2c_ctrl_rx_data,
+                                 i2c_ctrl_tx_data_reg,
+                                 i2c_ctrl_addr_reg};
+
       2'h2    : reg_data_out <= slv_reg2;
       2'h3    : reg_data_out <= slv_reg3;
       default : reg_data_out <= 0;
@@ -339,6 +395,17 @@ module i2c_axi_periph_axi #(
   end
 
   // Add user logic here
+  reg       i2c_ctrl_rstn_reg;
+  reg       i2c_ctrl_feed_reg;
+  reg       i2c_ctrl_rx_ack_reg;
+  reg [7:0] i2c_ctrl_tx_data_reg;
+  reg [7:0] i2c_ctrl_addr_reg;
+
+  assign i2c_ctrl_rstn    = i2c_ctrl_rstn_reg;
+  assign i2c_ctrl_feed    = i2c_ctrl_feed_reg;
+  assign i2c_ctrl_rx_ack  = i2c_ctrl_rx_ack_reg;
+  assign i2c_ctrl_tx_data = i2c_ctrl_tx_data_reg;
+  assign i2c_ctrl_addr    = i2c_ctrl_addr_reg;
 
   // User logic ends
 endmodule
