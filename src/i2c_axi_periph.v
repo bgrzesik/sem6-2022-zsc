@@ -16,7 +16,7 @@
   (
     // Users to add ports here
     inout wire sda,
-    output wire scl,
+    inout wire scl,
     // User ports ends
     // Do not modify the ports beyond this line
 
@@ -98,18 +98,12 @@
   );
 
   // Add user logic here
-  i2c_if i2c (
-  //    .sda(sda),
-  //    .scl(scl)
-  );
-
-  assign sda = i2c.sda;
-  assign scl = i2c.scl;
 
   i2c_ctrl #(
-    .CLK_FREQ(CLK_FREQ),
+    .CLK_FREQ(CLK_FREQ)
   ) i2c_ctrl (
-    .i2c(i2c),
+    .i2c_sda(sda),
+    .i2c_scl(scl),
 
     .clk(s00_axi_aclk),
 

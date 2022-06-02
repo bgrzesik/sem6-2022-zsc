@@ -4,7 +4,8 @@ module i2c_ctrl #(
   parameter CLK_DIV=CLK_FREQ / 100_000,
   parameter DIV_LEN = 16
 ) (
-    i2c_if i2c,
+    inout wire         i2c_sda,
+    inout wire         i2c_scl,
 
      input wire        clk,
      input wire        rstn,
@@ -68,12 +69,12 @@ module i2c_ctrl #(
     .rstn(rstn),
     .clk(clk),
     .en(scl_en),
-    .clk_out(i2c.scl),
+    .clk_out(i2c_scl),
     .counter(clk_counter) // TODO get rid of, everything should be able to 'switch' on SCL low
   );
 
-  bit [7:0] counter;
-  bit [7:0] counter_next;
+  bit [15:0] counter;
+  bit [15:0] counter_next;
 
   logic       tx_en;
   logic       tx_rstn;
@@ -82,11 +83,11 @@ module i2c_ctrl #(
   logic [7:0] tx_data_in;
 
   i2c_tx #(
-    .CLK_FREQ(CLK_FREQ),
     .CLK_DIV(CLK_DIV),
     .DIV_LEN(DIV_LEN)
   ) i2c_tx (
-    .i2c(i2c.ctrl_tx),
+    .i2c_sda(i2c_sda),
+    .i2c_scl(i2c_scl),
 
     .clk(clk),
     .rstn(tx_rstn),
@@ -141,7 +142,8 @@ module i2c_ctrl #(
     .CLK_DIV(CLK_DIV),
     .DIV_LEN(DIV_LEN)
   ) i2c_rx (
-    .i2c(i2c.ctrl_rx),
+    .i2c_sda(i2c_sda),
+    .i2c_scl(i2c_scl),
 
     .clk(clk),
     .rstn(rx_rstn),
@@ -177,10 +179,10 @@ module i2c_ctrl #(
   end
 
   logic sda_driver;
-  assign i2c.sda = ((state == kStart | state == kStop) & !sda_driver) ? 'b0 : 'bZ;
+  assign i2c_sda = ((state == kStart | state == kStop) & !sda_driver) ? 'b0 : 'bZ;
 
   logic scl_driver;
-  assign i2c.scl = ((state == kStart | state == kStop) & !scl_driver) ? 'b0 : 'bZ;
+  assign i2c_scl = ((state == kStart | state == kStop) & !scl_driver) ? 'b0 : 'bZ;
 
   always_comb begin
     sda_driver = 'b1;

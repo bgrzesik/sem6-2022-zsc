@@ -16,7 +16,7 @@ module i2c_tx_tb(
 
   i2c_if i2c ();
   i2c_tx i2c_tx (
-    .i2c(i2c.ctrl_tx),
+    .i2c(i2c),
 
     .clk(clk),
     .rstn(rstn),

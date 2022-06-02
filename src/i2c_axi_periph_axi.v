@@ -21,7 +21,7 @@ module i2c_axi_periph_axi #(
     output wire       i2c_ctrl_rx_ack,
      input wire       i2c_ctrl_tx_ack,
 
-     input wire [7:0] i2c_ctrl_addr,
+    output wire [7:0] i2c_ctrl_addr,
      input wire [7:0] i2c_ctrl_rx_data,
     output wire [7:0] i2c_ctrl_tx_data,
     // User ports ends
@@ -88,6 +88,12 @@ module i2c_axi_periph_axi #(
     // accept the read data and response information.
     input wire  S_AXI_RREADY
   );
+
+  reg       i2c_ctrl_rstn_reg;
+  reg       i2c_ctrl_feed_reg;
+  reg       i2c_ctrl_rx_ack_reg;
+  reg [7:0] i2c_ctrl_tx_data_reg;
+  reg [7:0] i2c_ctrl_addr_reg;
 
   // AXI4LITE signals
   reg [C_S_AXI_ADDR_WIDTH-1:0] axi_awaddr;
@@ -231,7 +237,6 @@ module i2c_axi_periph_axi #(
           */
           2'h0: begin
             if (S_AXI_WSTRB[0] == 1) begin
-              $display("[%d] [I2C_AXI] 0 S_AXI_WDATA = %h", $time, S_AXI_WDATA);
               i2c_ctrl_rx_ack_reg <= S_AXI_WDATA[6];
               i2c_ctrl_feed_reg   <= S_AXI_WDATA[1];
               i2c_ctrl_rstn_reg   <= S_AXI_WDATA[0];
@@ -239,7 +244,6 @@ module i2c_axi_periph_axi #(
           end
 
           2'h1: begin
-            $display("[%d] [I2C_AXI] 1 S_AXI_WDATA = %h", $time, S_AXI_WDATA);
             if (S_AXI_WSTRB[0] == 1)
               i2c_ctrl_addr_reg <= S_AXI_WDATA[0+:8];
             if (S_AXI_WSTRB[1] == 1)
@@ -395,17 +399,10 @@ module i2c_axi_periph_axi #(
   end
 
   // Add user logic here
-  reg       i2c_ctrl_rstn_reg;
-  reg       i2c_ctrl_feed_reg;
-  reg       i2c_ctrl_rx_ack_reg;
-  reg [7:0] i2c_ctrl_tx_data_reg;
-  reg [7:0] i2c_ctrl_addr_reg;
-
   assign i2c_ctrl_rstn    = i2c_ctrl_rstn_reg;
   assign i2c_ctrl_feed    = i2c_ctrl_feed_reg;
   assign i2c_ctrl_rx_ack  = i2c_ctrl_rx_ack_reg;
   assign i2c_ctrl_tx_data = i2c_ctrl_tx_data_reg;
   assign i2c_ctrl_addr    = i2c_ctrl_addr_reg;
-
   // User logic ends
 endmodule

@@ -8,7 +8,7 @@ module i2c_clk_driver #(
    input wire                  rstn,
    input wire                  clk,
    input wire                  en,
-  output wire                  clk_out,
+   inout wire                  clk_out,
   output logic [DIV_LEN - 1:0] counter
 );
 

@@ -42,6 +42,8 @@ class I2CVip;
     logic [0:7] val; // reverse bit order (MSB goes first)
     bytes = new [0];
 
+    if (ack_count == 0) return;
+
     while (1) begin
       for (int i = 0; i < 8; i++) begin
         @(posedge i2c.scl);

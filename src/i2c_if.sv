@@ -3,16 +3,6 @@ interface i2c_if;
   wire sda;
   wire scl;
 
-  // Both need SDA's input and output for ACK
-  modport ctrl_tx (
-    inout sda,
-    inout scl
-  );
-  modport ctrl_rx (
-    inout sda,
-    inout scl
-  );
-
   clocking driver_cb @ (negedge scl);
     default input #1step output #0step;
     inout sda;

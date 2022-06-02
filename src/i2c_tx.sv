@@ -4,7 +4,8 @@ module i2c_tx #(
   parameter CLK_DIV=CLK_FREQ / 100_000,
   parameter DIV_LEN = 16
 ) (
-    i2c_if.ctrl_tx i2c,
+    inout wire                  i2c_sda,
+    inout wire                  i2c_scl,
 
      input wire                 clk,
      input wire                 rstn,
@@ -35,7 +36,7 @@ module i2c_tx #(
   bit       was_high;
 
   // SDA driver
-  assign i2c.sda = (state == kTransmit & !data_reg[counter]) ? 'b0 : 'bZ;
+  assign i2c_sda = (state == kTransmit & !data_reg[counter]) ? 'b0 : 'bZ;
 
   // Data Enable driver
   assign data_en = !(state == kIdle | (state == kAck & !ack));
@@ -59,25 +60,25 @@ module i2c_tx #(
     end else begin
       case (state)
         kTransmit: begin
-          if (counter_next == 'd7 & !i2c.scl)
+          if (counter_next == 'd7 & !i2c_scl)
             data_reg <= data;
 
-          if (was_high & !i2c.scl & counter_next == 'd0) begin
+          if (was_high & !i2c_scl & counter_next == 'd0) begin
             state_next <= kAck;
-          end else if (was_high & !i2c.scl) begin
+          end else if (was_high & !i2c_scl) begin
             counter_next <= counter_next - 1;
             was_high <= 'b0;
-          end else if (i2c.scl) begin
+          end else if (i2c_scl) begin
             was_high <= 'b1;
           end
         end
 
         kAck: begin
-          if (i2c.scl) begin
-            ack <= i2c.sda ? 1'b1 : 1'b0;
+          if (i2c_scl) begin
+            ack <= i2c_sda ? 1'b1 : 1'b0;
             ack_en <= 1'b0;
 
-            $display("[%d] [TX] ack = %d", $time, i2c.sda);
+            $display("[%d] [TX] ack = %d", $time, i2c_sda);
           end
 
           if (clk_counter == CLK_DIV - 1) begin

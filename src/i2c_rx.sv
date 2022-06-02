@@ -4,7 +4,8 @@ module i2c_rx #(
   parameter CLK_DIV=CLK_FREQ / 100_000,
   parameter DIV_LEN = 16
 ) (
-    i2c_if.ctrl_rx i2c,
+    inout wire                  i2c_scl,
+    inout wire                  i2c_sda,
 
      input wire                 clk,
      input wire                 rstn,
@@ -34,7 +35,7 @@ module i2c_rx #(
   bit       was_low;
 
   // SDA driver
-  assign i2c.sda = (was_low & state == kAck) ? ack : 'bZ;
+  assign i2c_sda = (was_low & state == kAck) ? ack : 'bZ;
 
   // Ack Enable driver
   assign ack_en = !(state == kAck & !(was_low & clk_counter == CLK_DIV - 1));
@@ -59,8 +60,8 @@ module i2c_rx #(
       case (state)
 
         kReceive: begin
-          if (i2c.scl & was_low) begin
-            data_reg[counter] <= i2c.sda;
+          if (i2c_scl & was_low) begin
+            data_reg[counter] <= i2c_sda;
 
             if (counter_next != 8'd0) begin
               counter_next <= counter - 1;
@@ -68,16 +69,16 @@ module i2c_rx #(
               counter_next <= 8'd7;
               state_next <= kAck;
 
-              $display("[%d] [RX] read %h", $time, {i2c.sda, data_reg[1:7]});
+              $display("[%d] [RX] read %h", $time, {i2c_sda, data_reg[1:7]});
             end
             was_low <= 'b0;
           end
 
-          if (!i2c.scl & !was_low) was_low <= 'b1;
+          if (!i2c_scl & !was_low) was_low <= 'b1;
         end
 
         kAck: begin
-          if (i2c.scl & was_low & clk_counter == CLK_DIV - 1) begin
+          if (i2c_scl & was_low & clk_counter == CLK_DIV - 1) begin
             if (!ack & !rx) begin
               counter_next <= 4'd7;
               state_next <= kReceive;
@@ -88,7 +89,7 @@ module i2c_rx #(
             was_low <= 'b0;
           end
 
-          if (!i2c.scl & !was_low) was_low <= 'b1;
+          if (!i2c_scl & !was_low) was_low <= 'b1;
         end
 
       endcase
