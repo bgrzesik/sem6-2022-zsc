@@ -4,8 +4,13 @@ module i2c_ctrl #(
   parameter CLK_DIV=CLK_FREQ / 100_000,
   parameter DIV_LEN = 16
 ) (
-    inout wire         i2c_sda,
-    inout wire         i2c_scl,
+    output wire        i2c_sda_i,
+    output wire        i2c_sda_t,
+     input wire        i2c_sda_o,
+
+    output wire        i2c_scl_i,
+    output wire        i2c_scl_t,
+     input wire        i2c_scl_o,
 
      input wire        clk,
      input wire        rstn,
@@ -53,6 +58,10 @@ module i2c_ctrl #(
                 | state == kStop);
 
   // SCL driver
+  logic clk_scl_i;
+  logic clk_scl_t;
+  logic clk_scl_o;
+
   wire [DIV_LEN - 1:0] clk_counter;
   wire scl_en;
   assign scl_en = !(state == kAddress
@@ -66,15 +75,22 @@ module i2c_ctrl #(
     .CLK_DIV(CLK_DIV),
     .DIV_LEN(DIV_LEN)
   ) i2c_clk_driver (
+    .i2c_scl_i(clk_scl_i),
+    .i2c_scl_t(clk_scl_t),
+    .i2c_scl_o(clk_scl_o),
+
     .rstn(rstn),
     .clk(clk),
     .en(scl_en),
-    .clk_out(i2c_scl),
     .counter(clk_counter) // TODO get rid of, everything should be able to 'switch' on SCL low
   );
 
   bit [15:0] counter;
   bit [15:0] counter_next;
+
+  logic       tx_sda_i;
+  logic       tx_sda_t;
+  logic       tx_sda_o;
 
   logic       tx_en;
   logic       tx_rstn;
@@ -86,8 +102,10 @@ module i2c_ctrl #(
     .CLK_DIV(CLK_DIV),
     .DIV_LEN(DIV_LEN)
   ) i2c_tx (
-    .i2c_sda(i2c_sda),
-    .i2c_scl(i2c_scl),
+    .i2c_sda_i(tx_sda_i),
+    .i2c_sda_t(tx_sda_t),
+    .i2c_sda_o(tx_sda_o),
+    .i2c_scl_o(i2c_scl_o),
 
     .clk(clk),
     .rstn(tx_rstn),
@@ -132,6 +150,10 @@ module i2c_ctrl #(
     end
   end
 
+  logic       rx_sda_i;
+  logic       rx_sda_t;
+  logic       rx_sda_o;
+
   logic       rx_en;
   logic       rx_rstn;
   logic       rx_data_rdy;
@@ -142,8 +164,11 @@ module i2c_ctrl #(
     .CLK_DIV(CLK_DIV),
     .DIV_LEN(DIV_LEN)
   ) i2c_rx (
-    .i2c_sda(i2c_sda),
-    .i2c_scl(i2c_scl),
+    .i2c_sda_i(rx_sda_i),
+    .i2c_sda_t(rx_sda_t),
+    .i2c_sda_o(rx_sda_o),
+
+    .i2c_scl_o(i2c_scl_o),
 
     .clk(clk),
     .rstn(rx_rstn),
@@ -179,10 +204,60 @@ module i2c_ctrl #(
   end
 
   logic sda_driver;
-  assign i2c_sda = ((state == kStart | state == kStop) & !sda_driver) ? 'b0 : 'bZ;
+  assign i2c_sda_t = (state != kStart) & tx_sda_t & rx_sda_t & (state != kStop);
+
+  // assign i2c_sda_t = (state == kStart)       ? 0 :
+  //                    (state == kAddress)     ? tx_sda_t :
+  //                    (state == kAddressAck)  ? tx_sda_t :
+  //                    (state == kTransmit)    ? tx_sda_t :
+  //                    (state == kTransmitAck) ? tx_sda_t :
+  //                    (state == kReceive)     ? rx_sda_t :
+  //                    (state == kReceiveAck)  ? rx_sda_t :
+  //                    (state == kStop)        ? 0 : 1;
+
+  // assign i2c_sda_t = (state == kStart)       ? 0 :
+  //                    (state == kAddress)     ? 0 :
+  //                    (state == kAddressAck)  ? 1 :
+  //                    (state == kTransmit)    ? 0 :
+  //                    (state == kTransmitAck) ? 1 :
+  //                    (state == kReceive)     ? 1 :
+  //                    (state == kReceiveAck)  ? 0 :
+  //                    (state == kStop)        ? 0 : 1;
+
+  assign i2c_sda_i = (state == kStart)       ? sda_driver :
+                     (state == kAddress)     ? tx_sda_i :
+                     (state == kAddressAck)  ? tx_sda_i :
+                     (state == kTransmit)    ? tx_sda_i :
+                     (state == kTransmitAck) ? tx_sda_i :
+                     (state == kReceive)     ? rx_sda_i :
+                     (state == kReceiveAck)  ? rx_sda_i :
+                     (state == kStop)        ? sda_driver : 1;
+
+  assign tx_sda_o = i2c_sda_o;
+  assign rx_sda_o = i2c_sda_o;
 
   logic scl_driver;
-  assign i2c_scl = ((state == kStart | state == kStop) & !scl_driver) ? 'b0 : 'bZ;
+  assign i2c_scl_t = (state != kStart) & clk_scl_t & (state != kStop);
+  // assign i2c_scl_t = (state == kStart)       ? 0 :
+  //                    (state == kAddress)     ? clk_scl_t :
+  //                    (state == kAddressAck)  ? clk_scl_t :
+  //                    (state == kTransmitAck) ? clk_scl_t :
+  //                    (state == kTransmit)    ? clk_scl_t :
+  //                    (state == kTransmitAck) ? clk_scl_t :
+  //                    (state == kReceive)     ? clk_scl_t :
+  //                    (state == kReceiveAck)  ? clk_scl_t :
+  //                    (state == kStop)        ? 0 : 1;
+
+  assign i2c_scl_i = (state == kStart)       ? scl_driver :
+                     (state == kAddress)     ? clk_scl_i :
+                     (state == kAddressAck)  ? clk_scl_i :
+                     (state == kTransmit)    ? clk_scl_i :
+                     (state == kTransmitAck) ? clk_scl_i :
+                     (state == kReceive)     ? clk_scl_i :
+                     (state == kReceiveAck)  ? clk_scl_i :
+                     (state == kStop)        ? scl_driver: 1;
+
+  assign clk_scl_o = i2c_scl_o;
 
   always_comb begin
     sda_driver = 'b1;

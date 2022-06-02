@@ -98,12 +98,48 @@
   );
 
   // Add user logic here
+  wire i2c_sda_i;
+  wire i2c_sda_t;
+  wire i2c_sda_o;
+
+  wire i2c_scl_i;
+  wire i2c_scl_t;
+  wire i2c_scl_o;
+
+  IOBUF #(
+    .DRIVE(33),
+    .IBUF_LOW_PWR("FALSE"),
+    .IOSTANDARD("DEFAULT"),
+    .SLEW("SLOW")
+  ) iobuf_sda (
+    .IO(sda),
+    .O(i2c_sda_o),
+    .I(i2c_sda_i),
+    .T(i2c_sda_t)
+  );
+
+  IOBUF #(
+    .DRIVE(33),
+    .IBUF_LOW_PWR("FALSE"),
+    .IOSTANDARD("DEFAULT"),
+    .SLEW("SLOW")
+  ) iobuf_scl (
+    .IO(scl),
+    .O(i2c_scl_o),
+    .I(i2c_scl_i),
+    .T(i2c_scl_t)
+  );
 
   i2c_ctrl #(
     .CLK_FREQ(CLK_FREQ)
   ) i2c_ctrl (
-    .i2c_sda(sda),
-    .i2c_scl(scl),
+    .i2c_sda_i(i2c_sda_i),
+    .i2c_sda_t(i2c_sda_t),
+    .i2c_sda_o(i2c_sda_o),
+
+    .i2c_scl_i(i2c_scl_i),
+    .i2c_scl_t(i2c_scl_t),
+    .i2c_scl_o(i2c_scl_o),
 
     .clk(s00_axi_aclk),
 

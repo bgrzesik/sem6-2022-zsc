@@ -228,48 +228,6 @@ module i2c_axi_periph_tb();
     constraint c_data_size { data.size() >= 1; data.size() < 8; }
   endclass
 
-
-  wire  buf_io;
-  logic buf_o;
-  logic buf_i;
-  logic buf_t;
-
-  IOBUF #(
-    .DRIVE(32), // Specify the output drive strength
-    .IBUF_LOW_PWR("FALSE"), // Low Power - "TRUE", High Performance = "FALSE"
-    .IOSTANDARD("DEFAULT"), // Specify the I/O standard
-    .SLEW("SLOW") // Specify the output slew rate
-  ) IOBUF_inst (
-    .O(buf_o), // Buffer output
-    .IO(buf_io), // Buffer inout port (connect directly to top-level port)
-    .I(buf_i), // Buffer input
-    .T(buf_t) // 3-state enable input, high=input, low=output
-  );
-
-  initial begin
-
-    #10ns;
-    buf_t <= 1;
-    buf_i <= 1;
-
-    #10ns;
-    buf_t <= 1;
-    buf_i <= 0;
-
-    #10ns;
-    buf_t <= 0;
-    buf_i <= 1;
-
-    #10ns;
-    buf_t <= 0;
-    buf_i <= 0;
-
-
-
-    #100ns $finish;
-
-  end
-
   initial begin
     Transaction transaction;
 
