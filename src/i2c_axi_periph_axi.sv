@@ -24,6 +24,8 @@ module i2c_axi_periph_axi #(
     output wire [7:0] i2c_ctrl_addr,
      input wire [7:0] i2c_ctrl_rx_data,
     output wire [7:0] i2c_ctrl_tx_data,
+     input wire [7:0] dbg_state,
+
     // User ports ends
     // Do not modify the ports beyond this line
 
@@ -378,7 +380,7 @@ module i2c_axi_periph_axi #(
                                  i2c_ctrl_tx_data_reg,
                                  i2c_ctrl_addr_reg};
 
-      2'h2    : reg_data_out <= slv_reg2;
+      2'h2    : reg_data_out <= {24'h000000, dbg_state};
       2'h3    : reg_data_out <= slv_reg3;
       default : reg_data_out <= 0;
     endcase

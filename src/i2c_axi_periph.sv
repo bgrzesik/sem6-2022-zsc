@@ -57,6 +57,8 @@
   wire [7:0] i2c_ctrl_rx_data;
   wire [7:0] i2c_ctrl_tx_data;
 
+  wire [7:0] dbg_state;
+
   // Instantiation of Axi Bus Interface S00_AXI
   i2c_axi_periph_axi # ( 
     .C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
@@ -73,6 +75,7 @@
     .i2c_ctrl_addr(i2c_ctrl_addr),
     .i2c_ctrl_rx_data(i2c_ctrl_rx_data),
     .i2c_ctrl_tx_data(i2c_ctrl_tx_data),
+    .dbg_state(dbg_state),
 
     .S_AXI_ACLK(s00_axi_aclk),
     .S_AXI_ARESETN(s00_axi_aresetn),
@@ -153,8 +156,9 @@
 
     .addr(i2c_ctrl_addr),
     .rx_data(i2c_ctrl_rx_data),
-    .tx_data(i2c_ctrl_tx_data)
+    .tx_data(i2c_ctrl_tx_data),
 
+    .dbg_state(dbg_state)
   );
   // User logic ends
 
