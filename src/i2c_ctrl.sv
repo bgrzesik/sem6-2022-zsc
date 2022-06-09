@@ -62,9 +62,9 @@ module i2c_ctrl #(
                 | state == kStop);
 
   // SCL driver
-  logic clk_scl_i;
-  logic clk_scl_t;
-  logic clk_scl_o;
+  wire clk_scl_i;
+  wire clk_scl_t;
+  wire clk_scl_o;
 
   wire [DIV_LEN - 1:0] clk_counter;
   wire scl_en;
@@ -92,14 +92,14 @@ module i2c_ctrl #(
   bit [15:0] counter;
   bit [15:0] counter_next;
 
-  logic       tx_sda_i;
-  logic       tx_sda_t;
-  logic       tx_sda_o;
+  wire        tx_sda_i;
+  wire        tx_sda_t;
+  wire        tx_sda_o;
 
   logic       tx_en;
   logic       tx_rstn;
-  logic       tx_data_en;
-  logic       tx_ack_en;
+  wire        tx_data_en;
+  wire        tx_ack_en;
   logic [7:0] tx_data_in;
 
   i2c_tx #(
@@ -116,7 +116,6 @@ module i2c_ctrl #(
     .tx(tx_en),
 
     .data(tx_data_in),
-    .clk_counter(clk_counter),
 
     .data_en(tx_data_en),
     .ack(tx_ack),
@@ -154,16 +153,16 @@ module i2c_ctrl #(
     end
   end
 
-  logic       rx_sda_i;
-  logic       rx_sda_t;
-  logic       rx_sda_o;
+  wire        rx_sda_i;
+  wire        rx_sda_t;
+  wire        rx_sda_o;
 
   logic       rx_en;
   logic       rx_rstn;
-  logic       rx_data_rdy;
-  logic       rx_ack_en;
+  wire        rx_data_rdy;
+  wire        rx_ack_en;
 
-  i2c_rx #( 
+  i2c_rx #(
     .CLK_FREQ(CLK_FREQ),
     .CLK_DIV(CLK_DIV),
     .DIV_LEN(DIV_LEN)
