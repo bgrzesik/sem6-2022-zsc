@@ -16,12 +16,52 @@ module i2c_ctrl_tb (
   logic [7:0] tx_data;
   wire  [7:0] rx_data;
 
+
   i2c_if i2c ();
+  wire i2c_sda_i;
+  wire i2c_sda_t;
+  wire i2c_sda_o;
+
+  wire i2c_scl_i;
+  wire i2c_scl_t;
+  wire i2c_scl_o;
+  
+  IOBUF #(
+    .DRIVE(33),
+    .IBUF_LOW_PWR("FALSE"),
+    .IOSTANDARD("DEFAULT"),
+    .SLEW("SLOW")
+  ) iobuf_sda (
+    .IO(i2c.sda),
+    .O(i2c_sda_o),
+    .I(i2c_sda_i),
+    .T(i2c_sda_t)
+  );
+
+  IOBUF #(
+    .DRIVE(33),
+    .IBUF_LOW_PWR("FALSE"),
+    .IOSTANDARD("DEFAULT"),
+    .SLEW("SLOW")
+  ) iobuf_scl (
+    .IO(i2c.scl),
+    .O(i2c_scl_o),
+    .I(i2c_scl_i),
+    .T(i2c_scl_t)
+  );
+
+
   i2c_ctrl #(
     .CLK_DIV(10)
   ) i2c_ctrl (
-    .i2c(i2c),
+    .i2c_sda_i(i2c_sda_i),
+    .i2c_sda_t(i2c_sda_t),
+    .i2c_sda_o(i2c_sda_o),
 
+    .i2c_scl_i(i2c_scl_i),
+    .i2c_scl_t(i2c_scl_t),
+    .i2c_scl_o(i2c_scl_o),
+    
     .clk(clk),
     .rstn(rstn),
     .feed(feed),
